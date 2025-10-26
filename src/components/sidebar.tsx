@@ -168,64 +168,78 @@ export function Sidebar({
           )}
           style={{ maxWidth: `${maxWidth}px` }}
           {...props}
-        />
+        >
+          {children}
+        </aside>
       </>
     );
   }
 
-  // For desktop: use a fixed sidebar
+  // For desktop: use a fixed sidebar with smooth width transition
   return (
     <aside
       className={clsx(
         `
         sticky top-0 bottom-0 z-0 flex flex-col h-screen
         ${side === 'left' ? 'left-0 border-r' : 'right-0 border-l'} border-border
-        transition-all duration-300 ease-in-out
-        bg-sidebar
+        transition-all duration-300 ease-in-out bg-sidebar overflow-hidden
       `,
         className
       )}
       style={{
-        minWidth: isOpen ? `${maxWidth}px` : showIconsOnCollapse ? '4rem' : '0',
-        width: !isOpen
-          ? showIconsOnCollapse
-            ? `${maxWidth / 4}px`
-            : '0'
-          : '0px',
+        width: isOpen ? `${maxWidth}px` : showIconsOnCollapse ? '4rem' : '0px',
+        minWidth: showIconsOnCollapse ? '4rem' : '0',
+        pointerEvents: !isOpen && !showIconsOnCollapse ? 'none' : undefined,
+        userSelect: !isOpen && !showIconsOnCollapse ? 'none' : undefined,
       }}
+      {...props}
     >
+      {/* Always render children, let sidebar width handle the animation */}
       {children}
     </aside>
   );
 }
 
 export function SidebarHeader({
+  icon,
+  label,
   className,
   children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: {
+  icon?: React.ReactNode;
+  label?: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
   const { isOpen, showIconsOnCollapse } = useSidebar();
-
-  // Extract the first child to show as icon when collapsed
-  const childrenArray = React.Children.toArray(children);
-  const firstChild = childrenArray[0];
-
+  let iconNode = icon;
+  let labelNode = label;
+  if (!icon && !label && children) {
+    const childrenArray = React.Children.toArray(children);
+    iconNode = childrenArray[0];
+    labelNode = childrenArray.slice(1);
+  }
+  // Only animate label if showIconsOnCollapse is true
+  const labelClass = showIconsOnCollapse
+    ? 'transition-all duration-300 overflow-hidden whitespace-nowrap' +
+      (isOpen
+        ? ' opacity-100 ml-2 w-auto translate-x-0'
+        : ' opacity-0 ml-0 w-0 -translate-x-4')
+    : 'ml-2 w-auto';
   return (
     <div
       className={cn(
-        `
-        flex items-center h-16 gap-2 border-b ${isOpen ? 'px-8' : ''} border-border
-        ${isOpen ? '' : 'justify-center'}
-      `,
+        'flex items-center h-16 gap-2 border-b border-border transition-all duration-300 p-3',
         className
       )}
       {...props}
     >
-      {isOpen
-        ? children
-        : showIconsOnCollapse && firstChild
-          ? firstChild
-          : null}
+      {iconNode && <span className="flex-shrink-0">{iconNode}</span>}
+      <span
+        className={labelClass}
+        style={showIconsOnCollapse ? { maxWidth: isOpen ? 200 : 0 } : undefined}
+      >
+        {labelNode}
+      </span>
     </div>
   );
 }
@@ -234,42 +248,56 @@ export function SidebarContent({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  const { isOpen, showIconsOnCollapse } = useSidebar();
-  return isOpen || showIconsOnCollapse ? (
+  // const { showIconsOnCollapse } = useSidebar();
+  // Always render content, let sidebar width handle the animation if showIconsOnCollapse is false
+  return (
     <div
       className={cn('flex-1 overflow-auto px-3 py-2', className)}
       {...props}
     />
-  ) : null;
+  );
 }
 
 export function SidebarFooter({
+  icon,
+  label,
   className,
   children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: {
+  icon?: React.ReactNode;
+  label?: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
   const { isOpen, showIconsOnCollapse } = useSidebar();
-
-  // Extract the first child to show as icon when collapsed
-  const childrenArray = React.Children.toArray(children);
-  const firstChild = childrenArray[0];
-
+  let iconNode = icon;
+  let labelNode = label;
+  if (!icon && !label && children) {
+    const childrenArray = React.Children.toArray(children);
+    iconNode = childrenArray[0];
+    labelNode = childrenArray.slice(1);
+  }
+  // Only animate label if showIconsOnCollapse is true
+  const labelClass = showIconsOnCollapse
+    ? 'transition-all duration-300 overflow-hidden whitespace-nowrap' +
+      (isOpen
+        ? ' opacity-100 ml-2 w-auto translate-x-0'
+        : ' opacity-0 ml-0 w-0 -translate-x-4')
+    : 'ml-2 w-auto';
   return (
     <div
       className={cn(
-        `
-        flex items-center h-16 border-t gap-2 ${isOpen ? 'px-4' : ''} border-border
-        ${isOpen ? '' : 'justify-center'}
-      `,
+        'flex items-center h-16 gap-2 border-t border-border transition-all duration-300 p-3',
         className
       )}
       {...props}
     >
-      {isOpen
-        ? children
-        : showIconsOnCollapse && firstChild
-          ? firstChild
-          : null}
+      {iconNode && <span className="flex-shrink-0">{iconNode}</span>}
+      <span
+        className={labelClass}
+        style={showIconsOnCollapse ? { maxWidth: isOpen ? 200 : 0 } : undefined}
+      >
+        {labelNode}
+      </span>
     </div>
   );
 }
@@ -305,103 +333,112 @@ export function SidebarMenuItem({
   alwaysOpen = false,
   isCollapsable = false,
 }: SidebarMenuItemProps) {
-  const { isOpen, isMobile, setIsOpen } = useSidebar();
+  const { isOpen, isMobile, setIsOpen, showIconsOnCollapse } = useSidebar();
   const [isExpanded, setIsExpanded] = React.useState(defaultOpen || alwaysOpen);
   const pathname = usePathname();
-
-  // Determine if this item is active based on the current path
   const isActive =
     propIsActive !== undefined
       ? propIsActive
       : href
         ? pathname === href || pathname.startsWith(href)
         : false;
-
   React.useEffect(() => {
-    // If alwaysOpen is true, ensure the menu stays open
     if (alwaysOpen) {
       setIsExpanded(true);
     }
   }, [alwaysOpen]);
-
   const handleClick = (e: React.MouseEvent) => {
     if (children && !href && !alwaysOpen) {
       e.preventDefault();
       setIsExpanded((prev) => !prev);
     }
-    // Close the sidebar if in mobile view when a link is clicked
     if (isMobile && href) {
-      setIsOpen(false); // Close the sidebar
+      setIsOpen(false);
     }
   };
+  // Only animate label if showIconsOnCollapse is true
+  const labelClass = showIconsOnCollapse
+    ? 'transition-all duration-300 overflow-hidden whitespace-nowrap' +
+      (isOpen
+        ? ' opacity-100 ml-3 w-auto translate-x-0'
+        : ' opacity-0 ml-0 w-0 -translate-x-4')
+    : 'ml-3 w-auto';
+  // For sublist: always render, let sidebar width handle the animation if showIconsOnCollapse is false
+  const sublistClass = showIconsOnCollapse
+    ? 'ml-6 mt-1 pl-3 border-l border-border space-y-1 transition-all duration-300' +
+      (isOpen ? ' opacity-100 max-h-[1000px]' : ' opacity-0 max-h-0')
+    : 'ml-6 mt-1 pl-3 border-l border-border space-y-1';
   const content = (
     <>
       <div className="flex items-center">
         {icon && (
           <span
-            className={`${isActive ? 'font-medium' : 'text-gray-500 dark:text-gray-400'} ${isOpen ? 'mr-3' : ''}`}
+            className={`${isActive ? 'font-medium' : 'text-gray-500 dark:text-gray-400'} flex-shrink-0`}
           >
             {icon}
           </span>
         )}
-        {isOpen && (
-          <span
-            className={`${isActive ? 'bg-accent text-accent-foreground' : 'text-gray-700 dark:text-gray-300'}`}
-          >
-            {label}
-          </span>
-        )}
+        <span
+          className={labelClass}
+          style={
+            showIconsOnCollapse ? { maxWidth: isOpen ? 200 : 0 } : undefined
+          }
+        >
+          {label}
+        </span>
       </div>
-      {isOpen && children && !alwaysOpen && isCollapsable && (
-        <span className="ml-auto">
-          <ChevronRight
-            className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-          />
+      {/* Chevron for collapsable menus */}
+      {children && !alwaysOpen && isCollapsable && (
+        <span
+          className={
+            'transition-all duration-300 ml-auto' +
+            (isOpen ? ' opacity-100' : ' opacity-0')
+          }
+        >
+          {isOpen && (
+            <ChevronRight
+              className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+            />
+          )}
         </span>
       )}
     </>
   );
-
   return (
     <div>
       {href ? (
         <Link
           href={href}
-          className={`
-            flex items-center justify-between w-full p-2 rounded-md
-            ${
-              isActive
-                ? 'bg-accent text-accent-foreground'
-                : 'hover:bg-accent text-gray-700 dark:text-gray-300'
-            }
-            ${!isOpen ? 'justify-center' : ''}
-          `}
+          className={
+            `flex items-center justify-between w-full p-2 rounded-md transition-colors duration-200 ` +
+            (isActive
+              ? 'bg-accent text-accent-foreground'
+              : 'hover:bg-accent text-gray-700 dark:text-gray-300') +
+            (!isOpen && showIconsOnCollapse ? ' justify-center' : '')
+          }
           onClick={handleClick}
         >
           {content}
         </Link>
       ) : (
         <button
-          className={`
-            flex items-center justify-between w-full p-2 rounded-md
-            ${
-              isActive
-                ? 'bg-sidebar text-blue-500'
-                : 'hover:bg-accent text-gray-700 dark:text-gray-300'
-            }
-            ${!isOpen ? 'justify-center' : ''}
-          `}
+          className={
+            `flex items-center justify-between w-full p-2 rounded-md transition-colors duration-200 ` +
+            (isActive
+              ? 'bg-sidebar text-blue-500'
+              : 'hover:bg-accent text-gray-700 dark:text-gray-300') +
+            (!isOpen && showIconsOnCollapse ? ' justify-center' : '')
+          }
           onClick={handleClick}
         >
           {content}
         </button>
       )}
-
-      {isOpen && (isExpanded || alwaysOpen) && children && (
-        <div className="ml-6 mt-1 pl-3 border-l border-border space-y-1">
-          {children}
-        </div>
-      )}
+      {/* Always render sublist, let sidebar width handle the animation if showIconsOnCollapse is false */}
+      {(isOpen && (isExpanded || alwaysOpen) && children) ||
+      (!showIconsOnCollapse && (isExpanded || alwaysOpen) && children) ? (
+        <div className={sublistClass}>{children}</div>
+      ) : null}
     </div>
   );
 }
