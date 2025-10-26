@@ -25,7 +25,7 @@ The `Dialog` component provides a customizable modal dialog with options for fle
           return (
             <div className="flex flex-row gap-6">
               <Dialog>
-                <DialogTrigger asChild>
+                <DialogTrigger>
                   <Button>Open Dialog (Trigger)</Button>
                 </DialogTrigger>
                 <DialogContent className="bg-accent sm:max-w-md">
@@ -153,7 +153,6 @@ export function DialogExample() {
 
 | Prop        | Type    | Default | Description                                       |
 | ----------- | ------- | ------- | ------------------------------------------------- |
-| `asChild`   | boolean | `false` | Whether to render the trigger as a child element. |
 | `className` | string  | -       | Additional CSS classes.                           |
 
 ### `<DialogContent>`
@@ -173,17 +172,25 @@ export function DialogExample() {
 
 ### `<DialogHeader>`
 
-This is a container for the dialog header.
+| Prop        | Type    | Default | Description                                       |
+| ----------- | ------- | ------- | ------------------------------------------------- |
+| `className` | string  | -       | Additional CSS classes.                           |
 
 ### `<DialogTitle>`
 
-This is the title of the dialog.
+| Prop        | Type    | Default | Description                                       |
+| ----------- | ------- | ------- | ------------------------------------------------- |
+| `className` | string  | -       | Additional CSS classes.                           |
 
 ### `<DialogDescription>`
 
-This is a brief description of the dialog’s purpose.
+| Prop        | Type    | Default | Description                                       |
+| ----------- | ------- | ------- | ------------------------------------------------- |
+| `className` | string  | -       | Additional CSS classes.                           |
 
 ### `<DialogFooter>`
 
-This is a container for footer actions (e.g., buttons).
+| Prop        | Type    | Default | Description                                       |
+| ----------- | ------- | ------- | ------------------------------------------------- |
+| `className` | string  | -       | Additional CSS classes.                           |
 
